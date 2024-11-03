@@ -1,27 +1,32 @@
+use std::net::TcpListener;
+
 use actix_web::{dev::Server, web, App, HttpResponse, HttpServer};
 
-/// check if a number is even.
-/// ```rust
-/// use zero2prod::is_even;
-///
-/// assert!(is_even(2));
-/// assert!(!is_even(1));
-/// ```
-pub fn is_even(n: u64) -> bool {
-    n % 2 == 0
+#[derive(serde::Deserialize)]
+struct FormDate {
+    name: String,
+    email: String,
 }
 
-pub async fn health_check() -> HttpResponse {
+async fn health_check() -> HttpResponse {
+    HttpResponse::Ok().finish()
+}
+
+async fn subscribe(_form: web::Form<FormDate>) -> HttpResponse {
     HttpResponse::Ok().finish()
 }
 
 // We need to mark `run` as public.
 // It is no longer a binary entrypoint, therefore we can mark it as async
 // without having to use any proc-macro incantation.
-pub fn run() -> Result<Server, std::io::Error> {
-    let server = HttpServer::new(|| App::new().route("/health_check", web::get().to(health_check)))
-        .bind("127.0.0.1:8000")?
-        .run();
+pub fn run(listener: TcpListener) -> Result<Server, std::io::Error> {
+    let server = HttpServer::new(|| {
+        App::new()
+            .route("/health_check", web::get().to(health_check))
+            .route("/subscriptions", web::post().to(subscribe))
+    })
+    .listen(listener)?
+    .run();
     // .await
     // No .await here
     Ok(server)
